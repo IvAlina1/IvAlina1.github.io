@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игровой сайт</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        
+        .header {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        .tabs {
+            display: flex;
+            background-color: #444;
+        }
+        
+        .tab {
+            padding: 1rem;
+            color: white;
+            cursor: pointer;
+            flex: 1;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        
+        .tab:hover {
+            background-color: #555;
+        }
+        
+        .tab.active {
+            background-color: #666;
+        }
+        
+        .game-container {
+            display: none;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .game-container.active {
+            display: block;
+        }
+        
+        /* Стили для крестиков-ноликов */
+        #tic-tac-toe-board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            margin: 20px auto;
+        }
+        
+        .tic-tac-toe-cell {
+            width: 100px;
+            height: 100px;
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            cursor: pointer;
+            border: 2px solid #333;
+            border-radius: 5px;
+        }
+        
+        .tic-tac-toe-cell:hover {
+            background-color: #f0f0f0;
+        }
+        
+        /* Стили для змейки */
+        #snake-game {
+            border: 2px solid #333;
+            display: block;
+            margin: 0 auto;
+            background-color: #f8f8f8;
+        }
+        
+        #snake-score {
+            text-align: center;
+            font-size: 1.5rem;
+            margin: 10px 0;
+        }
+        
+        /* Стили для сапера */
+        #minesweeper-board {
+            display: grid;
+            grid-template-columns: repeat(10, 30px);
+            grid-template-rows: repeat(10, 30px);
+            gap: 2px;
+            margin: 20px auto;
+        }
+        
+        .minesweeper-cell {
+            width: 30px;
+            height: 30px;
+            background-color: #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            cursor: pointer;
+            border: 1px solid #999;
+            user-select: none;
+        }
+        
+        .minesweeper-cell.revealed {
+            background-color: #f0f0f0;
+        }
+        
+        .minesweeper-cell.flagged {
+            background-color: #ffcccc;
+        }
+        
+        #minesweeper-status {
+            text-align: center;
+            font-size: 1.2rem;
+            margin: 10px 0;
+        }
+        
+        .restart-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
+        .restart-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Игровой сайт</h1>
+    </div>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="openGame('tic-tac-toe')">Крестики-нолики</div>
+        <div class="tab" onclick="openGame('snake')">Змейка</div>
+        <div class="tab" onclick="openGame('minesweeper')">Сапер</div>
+    </div>
+    
+    <!-- Крестики-нолики -->
+    <div id="tic-tac-toe" class="game-container active">
+        <h2>Крестики-нолики</h2>
+        <p>Вы играете за крестики (X). Компьютер играет за нолики (O).</p>
+        <div id="tic-tac-toe-board"></div>
+        <div id="tic-tac-toe-status"></div>
+        <button class="restart-btn" onclick="restartTicTacToe()">Начать заново</button>
+    </div>
+    
+    <!-- Змейка -->
+    <div id="snake" class="game-container">
+        <h2>Змейка</h2>
+        <p>Управляйте змейкой с помощью стрелок. Съедайте яблоки (красные), чтобы расти.</p>
+        <div id="snake-score">Счет: 0</div>
+        <canvas id="snake-game" width="400" height="400"></canvas>
+        <button class="restart-btn" onclick="restartSnake()">Начать заново</button>
+    </div>
+    
+    <!-- Сапер -->
+    <div id="minesweeper" class="game-container">
+        <h2>Сапер</h2>
+        <p>Кликните на клетку, чтобы открыть ее. Удерживайте Shift и кликните, чтобы поставить флажок.</p>
+        <div id="minesweeper-status">Игра идет</div>
+        <div id="minesweeper-board"></div>
+        <button class="restart-btn" onclick="restartMinesweeper()">Начать заново</button>
+    </div>
+    
+    <script>
+        // Переключение между вкладками
+        function openGame(gameName) {
+            const tabs = document.querySelectorAll('.tab');
+            const games = document.querySelectorAll('.game-container');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            games.forEach(game => game.classList.remove('active'));
+            
+            document.querySelector(`.tab[onclick="openGame('${gameName}')"]`).classList.add('active');
+            document.getElementById(gameName).classList.add('active');
+        }
+        
+        // ========== Крестики-нолики ==========
+        const ticTacToeBoard = document.getElementById('tic-tac-toe-board');
+        const ticTacToeStatus = document.getElementById('tic-tac-toe-status');
+        let ticTacToeCells = [];
+        let currentPlayer = 'X';
+        let gameBoard = ['', '', '', '', '', '', '', '', ''];
+        let gameActive = true;
+        
+        // Создаем поле
+        function createTicTacToeBoard() {
+            ticTacToeBoard.innerHTML = '';
+            ticTacToeCells = [];
+            gameBoard = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = 'X';
+            gameActive = true;
+            ticTacToeStatus.textContent = '';
+            
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('tic-tac-toe-cell');
+                cell.setAttribute('data-index', i);
+                cell.addEventListener('click', handleTicTacToeClick);
+                ticTacToeBoard.appendChild(cell);
+                ticTacToeCells.push(cell);
+            }
+        }
+        
+        // Обработка клика
+        function handleTicTacToeClick(e) {
+            const index = e.target.getAttribute('data-index');
+            
+            if (gameBoard[index] !== '' || !gameActive) return;
+            
+            // Ход игрока
+            gameBoard[index] = currentPlayer;
+            e.target.textContent = currentPlayer;
+            
+            if (checkWin()) {
+                ticTacToeStatus.textContent = `Победили ${currentPlayer === 'X' ? 'Вы!' : 'Компьютер!'}`;
+                gameActive = false;
+                return;
+            }
+            
+            if (checkDraw()) {
+                ticTacToeStatus.textContent = 'Ничья!';
+                gameActive = false;
+                return;
+            }
+            
+            // Ход компьютера
+            currentPlayer = 'O';
+            setTimeout(computerMove, 500);
+        }
+        
+        // Ход компьютера
+        function computerMove() {
+            if (!gameActive) return;
+            
+            // Простой ИИ: сначала проверяем возможность выиграть, затем блокируем игрока, затем случайный ход
+            let bestMove = findWinningMove('O') || findWinningMove('X') || findRandomMove();
+            
+            if (bestMove !== null) {
+                gameBoard[bestMove] = 'O';
+                ticTacToeCells[bestMove].textContent = 'O';
+                
+                if (checkWin()) {
+                    ticTacToeStatus.textContent = 'Победили Компьютер!';
+                    gameActive = false;
+                    return;
+                }
+                
+                if (checkDraw()) {
+                    ticTacToeStatus.textContent = 'Ничья!';
+                    gameActive = false;
+                    return;
+                }
+            }
+            
+            currentPlayer = 'X';
+        }
+        
+        // Поиск выигрышного хода
+        function findWinningMove(player) {
+            for (let i = 0; i < 9; i++) {
+                if (gameBoard[i] === '') {
+                    gameBoard[i] = player;
+                    if (checkWin()) {
+                        gameBoard[i] = '';
+                        return i;
+                    }
+                    gameBoard[i] = '';
+                }
+            }
+            return null;
+        }
+        
+        // Случайный ход
+        function findRandomMove() {
+            const emptyCells = gameBoard.reduce((acc, cell, index) => {
+                if (cell === '') acc.push(index);
+                return acc;
+            }, []);
+            
+            return emptyCells.length > 0 
+                ? emptyCells[Math.floor(Math.random() * emptyCells.length)] 
+                : null;
+        }
+        
+        // Проверка победы
+        function checkWin() {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // горизонтали
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // вертикали
+                [0, 4, 8], [2, 4, 6]             // диагонали
+            ];
+            
+            return winPatterns.some(pattern => {
+                const [a, b, c] = pattern;
+                return gameBoard[a] !== '' && gameBoard[a] === gameBoard[b] && gameBoard[a] === gameBoard[c];
+            });
+        }
+        
+        // Проверка ничьи
+        function checkDraw() {
+            return gameBoard.every(cell => cell !== '');
+        }
+        
+        // Перезапуск игры
+        function restartTicTacToe() {
+            createTicTacToeBoard();
+        }
+        
+        // ========== Змейка ==========
+        const snakeCanvas = document.getElementById('snake-game');
+        const snakeCtx = snakeCanvas.getContext('2d');
+        const snakeScoreElement = document.getElementById('snake-score');
+        
+        const gridSize = 20;
+        const tileCount = snakeCanvas.width / gridSize;
+        
+        let snake = [{x: 10, y: 10}];
+        let velocityX = 0;
+        let velocityY = 0;
+        let foodX = 5;
+        let foodY = 5;
+        let score = 0;
+        let gameSpeed = 100;
+        let gameLoop;
+        
+        // Начало игры
+        function startSnakeGame() {
+            snake = [{x: 10, y: 10}];
+            velocityX = 0;
+            velocityY = 0;
+            score = 0;
+            snakeScoreElement.textContent = 'Счет: 0';
+            placeFood();
+            
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(drawSnakeGame, gameSpeed);
+        }
+        
+        // Отрисовка игры
+        function drawSnakeGame() {
+            // Очистка холста
+            snakeCtx.fillStyle = '#f8f8f8';
+            snakeCtx.fillRect(0, 0, snakeCanvas.width, snakeCanvas.height);
+            
+            // Перемещение змейки
+            const head = {x: snake[0].x + velocityX, y: snake[0].y + velocityY};
+            snake.unshift(head);
+            
+            // Проверка на съедение еды
+            if (head.x === foodX && head.y === foodY) {
+                score++;
+                snakeScoreElement.textContent = `Счет: ${score}`;
+                placeFood();
+            } else {
+                snake.pop();
+            }
+            
+            // Проверка на столкновение
+            if (
+                head.x < 0 || head.x >= tileCount || 
+                head.y < 0 || head.y >= tileCount ||
+                snake.slice(1).some(segment => segment.x === head.x && segment.y === head.y)
+            ) {
+                clearInterval(gameLoop);
+                alert(`Игра окончена! Ваш счет: ${score}`);
+                return;
+            }
+            
+            // Отрисовка еды
+            snakeCtx.fillStyle = 'red';
+            snakeCtx.fillRect(foodX * gridSize, foodY * gridSize, gridSize, gridSize);
+            
+            // Отрисовка змейки
+            snakeCtx.fillStyle = 'green';
+            snake.forEach(segment => {
+                snakeCtx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+            });
+        }
+        
+        // Размещение еды
+        function placeFood() {
+            let validPosition = false;
+            
+            while (!validPosition) {
+                foodX = Math.floor(Math.random() * tileCount);
+                foodY = Math.floor(Math.random() * tileCount);
+                
+                validPosition = !snake.some(segment => segment.x === foodX && segment.y === foodY);
+            }
+        }
+        
+        // Управление
+        document.addEventListener('keydown', e => {
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (velocityY !== 1) {
+                        velocityX = 0;
+                        velocityY = -1;
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (velocityY !== -1) {
+                        velocityX = 0;
+                        velocityY = 1;
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if (velocityX !== 1) {
+                        velocityX = -1;
+                        velocityY = 0;
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (velocityX !== -1) {
+                        velocityX = 1;
+                        velocityY = 0;
+                    }
+                    break;
+            }
+        });
+        
+        // Перезапуск игры
+        function restartSnake() {
+            startSnakeGame();
+        }
+        
+        // ========== Сапер ==========
+        const minesweeperBoard = document.getElementById('minesweeper-board');
+        const minesweeperStatus = document.getElementById('minesweeper-status');
+        const boardSize = 10;
+        const mineCount = 15;
+        let minesweeperCells = [];
+        let board = [];
+        let revealedCount = 0;
+        let gameOver = false;
+        
+        // Создание поля
+        function createMinesweeperBoard() {
+            minesweeperBoard.innerHTML = '';
+            minesweeperCells = [];
+            board = Array(boardSize).fill().map(() => Array(boardSize).fill(0));
+            revealedCount = 0;
+            gameOver = false;
+            minesweeperStatus.textContent = 'Игра идет';
+            
+            // Расставляем мины
+            let minesPlaced = 0;
+            while (minesPlaced < mineCount) {
+                const x = Math.floor(Math.random() * boardSize);
+                const y = Math.floor(Math.random() * boardSize);
+                
+                if (board[y][x] !== -1) {
+                    board[y][x] = -1;
+                    minesPlaced++;
+                }
+            }
+            
+            // Считаем соседние мины
+            for (let y = 0; y < boardSize; y++) {
+                for (let x = 0; x < boardSize; x++) {
+                    if (board[y][x] === -1) continue;
+                    
+                    let count = 0;
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const ny = y + dy;
+                            const nx = x + dx;
+                            
+                            if (ny >= 0 && ny < boardSize && nx >= 0 && nx < boardSize && board[ny][nx] === -1) {
+                                count++;
+                            }
+                        }
+                    }
+                    
+                    board[y][x] = count;
+                }
+            }
+            
+            // Создаем клетки
+            for (let y = 0; y < boardSize; y++) {
+                for (let x = 0; x < boardSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('minesweeper-cell');
+                    cell.dataset.y = y;
+                    cell.dataset.x = x;
+                    
+                    cell.addEventListener('click', () => handleMinesweeperClick(x, y, false));
+                    cell.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        handleMinesweeperClick(x, y, true);
+                    });
+                    
+                    minesweeperBoard.appendChild(cell);
+                    minesweeperCells.push(cell);
+                }
+            }
+        }
+        
+        // Обработка клика
+        function handleMinesweeperClick(x, y, isRightClick) {
+            if (gameOver) return;
+            
+            const index = y * boardSize + x;
+            const cell = minesweeperCells[index];
+            
+            if (isRightClick) {
+                // Установка/снятие флага
+                if (!cell.classList.contains('revealed')) {
+                    cell.classList.toggle('flagged');
+                }
+                return;
+            }
+            
+            // Проверка на флаг
+            if (cell.classList.contains('flagged')) return;
+            
+            // Проверка на мину
+            if (board[y][x] === -1) {
+                cell.classList.add('revealed');
+                cell.textContent = '💣';
+                cell.style.backgroundColor = '#ff9999';
+                gameOver = true;
+                revealAllMines();
+                minesweeperStatus.textContent = 'Вы проиграли!';
+                return;
+            }
+            
+            // Открытие клетки
+            revealCell(x, y);
+            
+            // Проверка на победу
+            if (revealedCount === boardSize * boardSize - mineCount) {
+                gameOver = true;
+                minesweeperStatus.textContent = 'Вы победили!';
+            }
+        }
+        
+        // Открытие клетки
+        function revealCell(x, y) {
+            if (x < 0 || x >= boardSize || y < 0 || y >= boardSize) return;
+            
+            const index = y * boardSize + x;
+            const cell = minesweeperCells[index];
+            
+            if (cell.classList.contains('revealed') || cell.classList.contains('flagged')) return;
+            
+            cell.classList.add('revealed');
+            revealedCount++;
+            
+            if (board[y][x] > 0) {
+                cell.textContent = board[y][x];
+                cell.style.color = getNumberColor(board[y][x]);
+            } else {
+                // Рекурсивно открываем соседние пустые клетки
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        if (dx !== 0 || dy !== 0) {
+                            revealCell(x + dx, y + dy);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Цвета для чисел
+        function getNumberColor(num) {
+            const colors = [
+                '',         // 0 (не показывается)
+                'blue',     // 1
+                'green',    // 2
+                'red',      // 3
+                'darkblue', // 4
+                'brown',    // 5
+                'teal',     // 6
+                'black',    // 7
+                'gray'      // 8
+            ];
+            return colors[num];
+        }
+        
+        // Показать все мины при проигрыше
+        function revealAllMines() {
+            for (let y = 0; y < boardSize; y++) {
+                for (let x = 0; x < boardSize; x++) {
+                    if (board[y][x] === -1) {
+                        const index = y * boardSize + x;
+                        const cell = minesweeperCells[index];
+                        cell.classList.add('revealed');
+                        cell.textContent = '💣';
+                    }
+                }
+            }
+        }
+        
+        // Перезапуск игры
+        function restartMinesweeper() {
+            createMinesweeperBoard();
+        }
+        
+        // Инициализация игр при загрузке
+        window.onload = function() {
+            createTicTacToeBoard();
+            startSnakeGame();
+            createMinesweeperBoard();
+        };
+    </script>
+</body>
+</html>
